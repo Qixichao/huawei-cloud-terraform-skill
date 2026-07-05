@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Huawei Cloud Terraform Requirements",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "name": {"type": ["string", "null"]},
+        "environment": {"type": ["string", "null"], "enum": ["dev", "stg", "prod", "test", null]},
+        "region": {"type": ["string", "null"]},
+        "provider_version": {"type": ["string", "null"]}
+      }
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "vpc_name": {"type": ["string", "null"]},
+        "vpc_cidr": {"type": ["string", "null"]},
+        "subnets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "cidr": {"type": "string"},
+              "gateway_ip": {"type": ["string", "null"]},
+              "availability_zone": {"type": ["string", "null"]}
+            },
+            "required": ["name", "cidr"]
+          }
+        }
+      }
+    },
+    "security_groups": {"type": "array"},
+    "ecs": {"type": "array"},
+    "rds": {"type": "array"},
+    "obs": {"type": "array"},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  }
+}

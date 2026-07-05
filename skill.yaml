@@ -1,0 +1,13 @@
+name: huawei-cloud-automation-llm-direct-webui
+version: 0.2.0
+mode: standalone-webui-llm-direct-with-python-tools
+description: Standalone Huawei Cloud automation Skill with LLM Direct Terraform generation and Python Tool Framework.
+entrypoints:
+  web: scripts/web_server.py
+  cli: scripts/skill_cli.py
+  tools_cli: scripts/tools_cli.py
+capabilities:
+  terraform_generation: llm_direct
+  python_tool_framework: true
+  web_ui: true
+  apply_gate: true

@@ -1,0 +1,35 @@
+allowed_terraform_commands:
+  fmt:
+    - terraform
+    - fmt
+    - -recursive
+  init:
+    - terraform
+    - init
+    - -input=false
+  validate:
+    - terraform
+    - validate
+  plan:
+    - terraform
+    - plan
+    - -input=false
+    - -out=tfplan
+  show_plan_json:
+    - terraform
+    - show
+    - -json
+    - tfplan
+  apply_saved_plan:
+    - terraform
+    - apply
+    - tfplan
+  output_json:
+    - terraform
+    - output
+    - -json
+blocked_commands:
+  - terraform destroy
+  - terraform apply -auto-approve
+  - terraform state rm
+  - terraform import

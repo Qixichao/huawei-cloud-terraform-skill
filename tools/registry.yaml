@@ -1,0 +1,40 @@
+version: 1
+default_dry_run: true
+
+# Register Python tools here when a workflow cannot be implemented cleanly by Terraform.
+# The LLM sees only enabled tools and chooses one based on user intent.
+# Business tools should live under tools/<category>/<tool_name>.py and expose a run(context, parameters) function.
+tools:
+  - name: sample_echo
+    display_name: Sample Echo Tool
+    category: framework_test
+    description: Framework self-test tool. It echoes input parameters and current workspace metadata. Do not use it for real cloud operations.
+    module: tools.samples.echo_tool
+    function: run
+    enabled: true
+    allow_execute: true
+    input_schema:
+      type: object
+      additionalProperties: true
+    notes:
+      - Placeholder only. Replace with real Python tools such as inventory query, precheck, API lookup, or migration helper.
+
+  # Example placeholder for future real tool registration. Keep disabled until implemented.
+  - name: huaweicloud_resource_inventory
+    display_name: Huawei Cloud Resource Inventory Placeholder
+    category: huaweicloud_query
+    description: Future Python tool for querying Huawei Cloud resources that are not represented in the Terraform state.
+    module: tools.huaweicloud.resource_inventory
+    function: run
+    enabled: false
+    allow_execute: false
+    input_schema:
+      type: object
+      properties:
+        region:
+          type: string
+        resource_type:
+          type: string
+      additionalProperties: true
+    notes:
+      - Disabled placeholder. Implement module and enable explicitly before use.

@@ -1,0 +1,17 @@
+generation_mode: llm_direct
+terraform_dir_name: terraform
+allow_file_extensions:
+  - .tf
+  - .tfvars.example
+  - .md
+blocked_file_names:
+  - .env
+  - terraform.tfvars
+  - credentials
+  - id_rsa
+max_file_size_bytes: 200000
+max_total_files: 40
+apply_policy:
+  allow_apply_env_var: ALLOW_APPLY
+  allow_prod_apply_env_var: ALLOW_PROD_APPLY
+  required_approval_text: Confirm to execute apply

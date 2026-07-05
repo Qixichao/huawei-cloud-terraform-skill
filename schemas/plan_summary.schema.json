@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Terraform Plan Summary",
+  "type": "object",
+  "properties": {
+    "create": {"type": "array"},
+    "update": {"type": "array"},
+    "delete": {"type": "array"},
+    "replace": {"type": "array"},
+    "no_op": {"type": "array"},
+    "unknown": {"type": "array"},
+    "counts": {"type": "object"},
+    "risk_flags": {"type": "array", "items": {"type": "string"}}
+  }
+}

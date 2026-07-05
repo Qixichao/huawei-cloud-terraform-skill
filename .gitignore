@@ -1,0 +1,38 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# VS Code local
+.vscode/settings.json
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+crash.log
+crash.*.log
+
+# Workspaces / generated files
+workspaces/
+logs/
+
+# OS
+.DS_Store
+
+# Large archives
+*.zip

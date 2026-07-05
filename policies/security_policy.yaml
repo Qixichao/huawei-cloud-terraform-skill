@@ -1,0 +1,26 @@
+blocked_public_ingress:
+  cidrs:
+    - 0.0.0.0/0
+    - ::/0
+  ports:
+    - 22
+    - 3389
+    - 3306
+    - 5432
+    - 6379
+    - 6443
+    - 9200
+    - 9300
+secret_patterns:
+  - '(?i)access_key\s*=\s*"[^"]+"'
+  - '(?i)secret_key\s*=\s*"[^"]+"'
+  - '(?i)password\s*=\s*"[^$][^"]{5,}"'
+  - '(?i)admin_pass\s*=\s*"[^$][^"]{5,}"'
+  - '(?i)AKIA[0-9A-Z]{16}'
+  - '(?i)sk-[a-z0-9]{20,}'
+blocked_terms:
+  - 'terraform destroy'
+  - 'apply -auto-approve'
+  - 'local-exec'
+  - 'remote-exec'
+  - 'curl | bash'
