@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the standalone skill package structure."""
+"""Validate the minimal Huawei Cloud Terraform Skill package."""
 from __future__ import annotations
 
 import py_compile
@@ -9,37 +9,23 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parents[1]
 REQUIRED = [
     "SKILL.md",
-    "skill.yaml",
-    "README.md",
     "requirements.txt",
-    "prompts/requirements_extraction.md",
-    "prompts/terraform_file_generator.md",
-    "prompts/validate_error_repair.md",
-    "prompts/plan_reviewer.md",
+    "agents/openai.yaml",
+    "references/workflow.md",
+    "references/huawei-provider.md",
     "schemas/requirements.schema.json",
-    "schemas/terraform_files.schema.json",
     "schemas/plan_summary.schema.json",
+    "schemas/change_set.schema.json",
     "policies/security_policy.yaml",
     "policies/command_allowlist.yaml",
-    "policies/generation_policy.yaml",
-    "scripts/skill_cli.py",
-    "scripts/llm_client.py",
-    "scripts/safe_writer.py",
     "scripts/policy_check.py",
     "scripts/terraform_runner.py",
     "scripts/parse_plan.py",
-    "examples/requirements.dev.vpc-ecs-rds.json",
-    "examples/terraform_files_response.example.json",
-    "prompts/tool_selection.md",
-    "schemas/tool_selection.schema.json",
-    "schemas/tool_result.schema.json",
-    "scripts/tool_selector.py",
-    "scripts/tools_cli.py",
-    "tools/base.py",
-    "tools/registry.py",
-    "tools/executor.py",
-    "tools/registry.yaml",
-    "tools/samples/echo_tool.py",
+    "scripts/workspace_lib.py",
+    "scripts/workspace_cli.py",
+    "scripts/change_set.py",
+    "scripts/state_reader.py",
+    "scripts/terraform_cli.py",
 ]
 
 FORBIDDEN_DIRS = ["templates"]
@@ -67,12 +53,11 @@ def main() -> int:
                 print(f"- {f.relative_to(SKILL_DIR)}")
             return 2
 
-    for py in list((SKILL_DIR / "scripts").glob("*.py")) + list((SKILL_DIR / "tools").rglob("*.py")):
+    for py in (SKILL_DIR / "scripts").glob("*.py"):
         py_compile.compile(str(py), doraise=True)
 
     print("Skill package validation passed.")
-    print("No templates/ directory and no .j2 files found.")
-    print("Python tool framework files found.")
+    print("Minimal deterministic Terraform Skill structure found.")
     return 0
 
 

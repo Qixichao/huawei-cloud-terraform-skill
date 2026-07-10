@@ -1,0 +1,4 @@
+interface:
+  display_name: "Huawei Cloud Terraform"
+  short_description: "Safely manage Huawei Cloud Terraform workspaces"
+  default_prompt: "Use $huawei-cloud-terraform to create or update Huawei Cloud infrastructure safely."

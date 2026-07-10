@@ -46,6 +46,17 @@ def run_terraform(command_name: str, terraform_dir: str | Path, timeout: int = 1
     }
 
 
+def validate_terraform_dir(terraform_dir: str | Path, timeout: int = 1800) -> dict[str, Any]:
+    terraform_dir = Path(terraform_dir)
+    init_result = run_terraform("init", terraform_dir, timeout=timeout)
+    validate_result = run_terraform("validate", terraform_dir, timeout=timeout)
+    return {
+        "ok": init_result["returncode"] == 0 and validate_result["returncode"] == 0,
+        "init": init_result,
+        "validate": validate_result,
+    }
+
+
 def apply_saved_plan(terraform_dir: str | Path, approval: str, environment: str | None = None) -> dict[str, Any]:
     required = os.getenv("REQUIRED_APPLY_APPROVAL", "Confirm to execute apply")
     if approval != required:
@@ -57,9 +68,9 @@ def apply_saved_plan(terraform_dir: str | Path, approval: str, environment: str 
     if (environment or "").lower() == "prod" and os.getenv("ALLOW_PROD_APPLY", "false").lower() != "true":
         raise TerraformRunnerError("Production apply blocked: set ALLOW_PROD_APPLY=true to enable prod apply")
 
-    tfplan = Path(terraform_dir) / "tfplan"
-    if not tfplan.exists():
-        raise TerraformRunnerError("Apply blocked: saved plan file 'tfplan' not found")
+    terraform_dir = Path(terraform_dir)
+    if not (terraform_dir / "tfplan").is_file():
+        raise TerraformRunnerError("Apply blocked: no reviewed tfplan exists; run a fresh plan first")
 
     return run_terraform("apply_saved_plan", terraform_dir)
 

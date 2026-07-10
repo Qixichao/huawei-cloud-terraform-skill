@@ -22,20 +22,33 @@
           "items": {
             "type": "object",
             "properties": {
+              "logical_id": {"type": "string"},
+              "operation": {"type": "string", "enum": ["upsert", "delete"]},
               "name": {"type": "string"},
               "cidr": {"type": "string"},
               "gateway_ip": {"type": ["string", "null"]},
               "availability_zone": {"type": ["string", "null"]}
             },
-            "required": ["name", "cidr"]
+            "required": ["logical_id", "operation", "name", "cidr"]
           }
         }
       }
     },
-    "security_groups": {"type": "array"},
-    "ecs": {"type": "array"},
-    "rds": {"type": "array"},
-    "obs": {"type": "array"},
+    "security_groups": {"type": "array", "items": {"$ref": "#/$defs/resourceOperation"}},
+    "ecs": {"type": "array", "items": {"$ref": "#/$defs/resourceOperation"}},
+    "rds": {"type": "array", "items": {"$ref": "#/$defs/resourceOperation"}},
+    "obs": {"type": "array", "items": {"$ref": "#/$defs/resourceOperation"}},
     "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "resourceOperation": {
+      "type": "object",
+      "properties": {
+        "logical_id": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "enum": ["upsert", "delete"]}
+      },
+      "required": ["logical_id", "operation"],
+      "additionalProperties": true
+    }
   }
 }

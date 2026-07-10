@@ -1,104 +1,40 @@
 ---
-name: huawei-cloud-automation-llm-direct-webui
-version: 0.2.0
-description: Standalone Web UI Skill for Huawei Cloud automation. It supports LLM Direct Terraform generation plus a Python Tool Framework for operations that cannot be implemented by Terraform.
+name: huawei-cloud-terraform
+description: Create, inspect, update, validate, plan, review, and safely apply Huawei Cloud Terraform infrastructure through deterministic local tools. Use when Codex receives English or Chinese requests involving Huawei Cloud VPCs, subnets, security groups, ECS, RDS, OBS, infrastructure as code, Terraform changes, plan review, or controlled deployment. Also use when modifying or deleting resources already managed by a workspace; preserve Terraform resource addresses and state across turns.
 ---
 
-# Huawei Cloud Automation LLM Direct WebUI Skill
+# Huawei Cloud Terraform
 
-## Purpose
+Use Codex for intent recognition, requirements reasoning, Terraform authoring, and validation repair. Use bundled Python scripts only for deterministic workspace, file, policy, state, plan, and apply operations. Do not call another LLM from this Skill.
 
-Use this Skill to automate Huawei Cloud work through two controlled paths:
+## Workflow
 
-1. **Terraform path**: the LLM extracts requirements and directly generates Terraform files. The Skill then writes files, runs policy checks, and gates `terraform plan/apply`.
-2. **Python Tool path**: the LLM selects a registered Python tool when the user asks for a function that cannot be implemented cleanly with Terraform.
+1. Determine whether the request creates a new workspace or changes an existing one.
+2. Run `python scripts/workspace_cli.py inspect --workspace <name>` before editing.
+3. For an existing workspace, read `requirements.json`, every managed `.tf` file, and the returned Terraform state addresses.
+   If legacy `.tf` files exist but are not in `managed_files`, ask before adopting them, then run `python scripts/workspace_cli.py adopt --workspace <name> --files <paths...>`.
+4. Read [references/workflow.md](references/workflow.md). For provider-specific authoring, also read [references/huawei-provider.md](references/huawei-provider.md).
+5. Preserve existing Terraform resource addresses. Represent intended requirement changes with stable `logical_id` values and explicit `upsert` or `delete` operations.
+6. Prepare a change-set JSON that lists complete `files_to_write` and explicit `files_to_delete` entries. Never infer deletion from an omitted file.
+7. Preview it with `python scripts/change_set.py apply --workspace <name> --change-set <file> --dry-run`.
+8. Apply the file change-set only after reviewing its preview. File deletion requires `--allow-delete`.
+9. Run formatting, initialization, validation, policy check, and a fresh plan through `scripts/terraform_cli.py`.
+10. Read the fresh plan summary. Clearly report create, update, delete, and replace counts. Require explicit user approval for destructive changes.
+11. Run apply only when the user explicitly approves the exact fresh plan and the environment gates permit it.
 
-This Skill is standalone. It does not depend on the earlier Agent Runtime.
+## Safety rules
 
-## Architecture
+- Never delete or recreate a workspace to update resources.
+- Never edit or delete `.tfstate`, `.terraform`, lock files, or saved plans through a change-set.
+- Never automatically pass an approval phrase on the user's behalf.
+- Never run apply before generating a new saved plan for the current configuration.
+- Never treat an absent array item or omitted `.tf` file as deletion.
+- Never hardcode credentials or secrets.
+- Stop and ask before a plan containing delete or replace actions unless the user already explicitly requested those exact destructive changes.
+- Do not import unmanaged cloud resources automatically. Explain that adoption requires a separately approved import workflow.
 
-```text
-User Web UI / CLI
-  ↓
-LLM intent and requirement understanding
-  ↓
-Route decision
-  ├─ terraform_flow → generate .tf → policy-check → terraform fmt/init/validate/plan/apply gate
-  └─ python_tool    → select registered tool → execute Python tool through registry/executor
-```
+## Contracts
 
-## Terraform path
-
-The LLM may generate Terraform files as JSON:
-
-```json
-{
-  "files": [
-    {"path": "provider.tf", "content": "..."},
-    {"path": "main.tf", "content": "..."}
-  ],
-  "assumptions": [],
-  "risk_notes": []
-}
-```
-
-The Skill writes only safe file suffixes under the workspace Terraform directory and then allows controlled Terraform commands from `policies/command_allowlist.yaml`.
-
-## Python Tool path
-
-Python tools are registered in:
-
-```text
-tools/registry.yaml
-```
-
-Each real tool should be implemented as a local Python module under `tools/` and expose:
-
-```python
-def run(context: ToolContext, parameters: dict) -> ToolResult:
-    ...
-```
-
-The first version only provides a `sample_echo` tool to prove the framework works. Business tools are intentionally not implemented yet.
-
-## When to use Python tools
-
-Use Python tools when the request requires:
-
-- Huawei Cloud API operations not supported by Terraform.
-- Inventory or discovery against existing resources.
-- Precheck or migration helper logic.
-- Data processing, validation, report generation, or custom workflow steps.
-- External system integration.
-
-## Do not do
-
-- Do not invent unregistered tools.
-- Do not execute Python tools outside the registry.
-- Do not use shell execution inside the Python tool executor.
-- Do not pass AK/SK through model prompts.
-- Do not write AK/SK into generated Terraform files.
-- Do not run `terraform apply` unless `ALLOW_APPLY=true` and the user provides the exact approval phrase.
-
-## Security boundaries
-
-- Terraform commands are allowlisted.
-- Python tools are allowlisted through `tools/registry.yaml`.
-- Disabled tools cannot run.
-- Tools with `allow_execute: false` cannot run.
-- The initial Python tool framework defaults to dry-run usage.
-- Huawei Cloud credentials should be injected through environment variables or a future secret manager integration.
-
-## Current status
-
-This is a framework version. It includes:
-
-- Web UI
-- CLI
-- Terraform LLM Direct flow
-- Tool registry
-- Tool selector prompt
-- Python tool executor
-- Sample echo tool
-
-It does not yet include real Huawei Cloud Python business tools or generated tool parameters.
+- Use [schemas/requirements.schema.json](schemas/requirements.schema.json) for canonical requirements with stable logical IDs.
+- Use [schemas/change_set.schema.json](schemas/change_set.schema.json) for reviewed file changes.
+- Use [schemas/plan_summary.schema.json](schemas/plan_summary.schema.json) when interpreting plan summaries.

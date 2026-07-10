@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Terraform workspace change set",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "files_to_write": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
+        "required": ["path", "content"]
+      }
+    },
+    "files_to_delete": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "reason": {"type": "string"}
+  },
+  "required": ["files_to_write", "files_to_delete", "reason"]
+}
