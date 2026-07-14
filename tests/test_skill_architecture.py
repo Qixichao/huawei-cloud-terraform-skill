@@ -4,13 +4,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-SKILL_ROOT = (
-    Path(__file__).resolve().parents[1]
-    / "plugins"
-    / "huawei-cloud-terraform-skill"
-    / "skills"
-    / "huawei-cloud-terraform"
-)
+SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT))
 
 from scripts.change_set import apply_change_set

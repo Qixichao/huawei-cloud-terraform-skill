@@ -31,7 +31,8 @@ REQUIRED = [
     "scripts/terraform_cli.py",
 ]
 
-FORBIDDEN_DIRS = ["templates"]
+# A plain Skill must not regain plugin or marketplace wrapper directories.
+FORBIDDEN_DIRS = ["templates", "plugins", ".codex-plugin", ".agents/plugins"]
 FORBIDDEN_FILES = ["*.j2"]
 
 
