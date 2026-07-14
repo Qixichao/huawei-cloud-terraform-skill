@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import re
 from pathlib import Path
 from typing import Any
@@ -10,23 +11,31 @@ from typing import Any
 import yaml
 
 
+LOGGER = logging.getLogger(__name__)
+
 DEFAULT_POLICY = Path(__file__).resolve().parents[1] / "policies" / "security_policy.yaml"
 
 
 class PolicyViolation(RuntimeError):
+    """Raised when a caller chooses exception-based policy enforcement."""
+
     pass
 
 
 def load_policy(path: str | Path = DEFAULT_POLICY) -> dict[str, Any]:
+    """Load the static Terraform security policy from YAML."""
+    LOGGER.debug("Loading policy: %s", path)
     return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
 
 def scan_terraform_dir(terraform_dir: str | Path, policy_path: str | Path = DEFAULT_POLICY) -> list[str]:
+    """Scan Terraform text for secrets, blocked terms, and risky public ingress."""
     terraform_dir = Path(terraform_dir)
     policy = load_policy(policy_path)
     violations: list[str] = []
 
     tf_files = list(terraform_dir.rglob("*.tf")) + list(terraform_dir.rglob("*.tfvars")) + list(terraform_dir.rglob("*.tfvars.example"))
+    LOGGER.info("Policy scan started: directory=%s files=%d", terraform_dir, len(tf_files))
     for file_path in tf_files:
         rel = file_path.relative_to(terraform_dir)
         text = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -52,10 +61,12 @@ def scan_terraform_dir(terraform_dir: str | Path, policy_path: str | Path = DEFA
                     if any(re.search(p, text) for p in port_patterns):
                         violations.append(f"{rel}: public CIDR {cidr} with high-risk port {port}")
 
+    LOGGER.info("Policy scan complete: violations=%d", len(violations))
     return violations
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(description="Run static policy checks on Terraform files.")
     parser.add_argument("--terraform-dir", required=True)
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))

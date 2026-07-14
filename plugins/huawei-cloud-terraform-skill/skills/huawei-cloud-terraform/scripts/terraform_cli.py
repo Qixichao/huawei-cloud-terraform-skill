@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 
 try:
     from .parse_plan import summarize_plan
@@ -18,7 +19,11 @@ except ImportError:
     from workspace_lib import read_json, workspace_paths, write_json
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 def configuration_digest(terraform_dir) -> str:
+    """Hash managed Terraform source paths and contents for plan freshness checks."""
     digest = hashlib.sha256()
     for path in sorted(terraform_dir.rglob("*.tf")):
         digest.update(path.relative_to(terraform_dir).as_posix().encode("utf-8"))
@@ -29,6 +34,8 @@ def configuration_digest(terraform_dir) -> str:
 
 
 def execute(workspace: str, command: str, approval: str | None = None) -> dict:
+    """Execute one deterministic Terraform lifecycle operation for a workspace."""
+    LOGGER.info("Terraform lifecycle operation started: workspace=%s command=%s", workspace, command)
     paths = workspace_paths(workspace)
     paths["terraform"].mkdir(parents=True, exist_ok=True)
     paths["logs"].mkdir(parents=True, exist_ok=True)
@@ -54,6 +61,7 @@ def execute(workspace: str, command: str, approval: str | None = None) -> dict:
         environment = requirements.get("project", {}).get("environment") if isinstance(requirements, dict) else None
         metadata_path = paths["terraform"] / ".skill-plan.json"
         metadata = read_json(metadata_path, default={})
+        # Bind apply to the exact Terraform sources that produced the reviewed plan.
         if metadata.get("configuration_digest") != configuration_digest(paths["terraform"]):
             raise RuntimeError("Apply blocked: Terraform files changed after the reviewed plan; create and review a fresh plan")
         applied = apply_saved_plan(paths["terraform"], approval or "", environment=environment)
@@ -63,10 +71,12 @@ def execute(workspace: str, command: str, approval: str | None = None) -> dict:
         command_result = run_terraform(command_name, paths["terraform"])
         result = {"ok": command_result["returncode"] == 0, "result": command_result}
     save_command_result(result, paths["logs"] / f"terraform_{command}.json")
+    LOGGER.info("Terraform lifecycle operation finished: workspace=%s command=%s ok=%s", workspace, command, result.get("ok"))
     return result
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(description="Deterministic Terraform lifecycle CLI")
     parser.add_argument("command", choices=["fmt", "init", "validate", "policy-check", "plan", "apply"])
     parser.add_argument("--workspace", required=True)

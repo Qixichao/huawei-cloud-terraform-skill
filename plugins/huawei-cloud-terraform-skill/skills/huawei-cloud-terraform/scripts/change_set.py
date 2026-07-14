@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +14,8 @@ except ImportError:
     from workspace_lib import read_json, workspace_paths, write_json
 
 
+LOGGER = logging.getLogger(__name__)
+
 PROTECTED_PARTS = {".terraform", "terraform.tfstate", "terraform.tfstate.backup", ".terraform.lock.hcl", "tfplan", "plan.json", ".skill-plan.json"}
 ALLOWED_EXACT_SUFFIXES = {".tf", ".md"}
 ALLOWED_SPECIAL_ENDINGS = (".tfvars.example",)
@@ -20,6 +23,7 @@ BLOCKED_NAMES = {".env", "terraform.tfvars", "credentials", "id_rsa"}
 
 
 def normalize_relative_path(value: str) -> Path:
+    """Accept only safe, relative Terraform documentation/configuration paths."""
     path = Path(value)
     if not value.strip() or path.is_absolute() or ".." in path.parts:
         raise ValueError(f"Unsafe relative path: {value}")
@@ -31,6 +35,7 @@ def normalize_relative_path(value: str) -> Path:
 
 
 def validate_path(value: str) -> Path:
+    """Reject Terraform runtime artifacts even when their path is relative."""
     path = normalize_relative_path(value)
     if any(part in PROTECTED_PARTS or part.startswith("terraform.tfstate") for part in path.parts):
         raise ValueError(f"Protected Terraform path: {value}")
@@ -38,6 +43,7 @@ def validate_path(value: str) -> Path:
 
 
 def apply_change_set(workspace: str, document: dict, dry_run: bool, allow_delete: bool) -> dict:
+    """Validate, preview, then atomically apply an explicit file change set."""
     paths = workspace_paths(workspace)
     terraform_dir = paths["terraform"]
     terraform_dir.mkdir(parents=True, exist_ok=True)
@@ -46,6 +52,13 @@ def apply_change_set(workspace: str, document: dict, dry_run: bool, allow_delete
     deletes = document.get("files_to_delete", [])
     if not isinstance(writes, list) or not isinstance(deletes, list):
         raise ValueError("files_to_write and files_to_delete must be arrays")
+    LOGGER.info(
+        "Preparing change set: workspace=%s writes=%d deletes=%d dry_run=%s",
+        workspace,
+        len(writes),
+        len(deletes),
+        dry_run,
+    )
 
     prepared_writes: list[tuple[Path, str]] = []
     for item in writes:
@@ -69,8 +82,10 @@ def apply_change_set(workspace: str, document: dict, dry_run: bool, allow_delete
         "files_to_delete": [path.as_posix() for path in prepared_deletes],
     }
     if dry_run:
+        LOGGER.info("Change set preview complete: workspace=%s", workspace)
         return result
 
+    # Existing files are snapshotted before any mutation so changes remain recoverable.
     backup_dir = paths["workspace"] / "snapshots" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     for relative in [path for path, _ in prepared_writes] + prepared_deletes:
         source = terraform_dir / relative
@@ -93,10 +108,18 @@ def apply_change_set(workspace: str, document: dict, dry_run: bool, allow_delete
         managed.discard(relative.as_posix())
     write_json(paths["manifest"], {"files": sorted(managed)})
     result["backup"] = str(backup_dir) if backup_dir.exists() else None
+    LOGGER.info(
+        "Change set applied: workspace=%s writes=%d deletes=%d backup_created=%s",
+        workspace,
+        len(prepared_writes),
+        len(prepared_deletes),
+        backup_dir.exists(),
+    )
     return result
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(description="Apply a reviewed Terraform file change set")
     parser.add_argument("command", choices=["apply"])
     parser.add_argument("--workspace", required=True)

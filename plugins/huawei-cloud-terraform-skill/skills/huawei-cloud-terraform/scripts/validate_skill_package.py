@@ -2,9 +2,12 @@
 """Validate the minimal Huawei Cloud Terraform Skill package."""
 from __future__ import annotations
 
+import logging
 import py_compile
 from pathlib import Path
 
+
+LOGGER = logging.getLogger(__name__)
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 REQUIRED = [
@@ -33,6 +36,8 @@ FORBIDDEN_FILES = ["*.j2"]
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    LOGGER.info("Skill package validation started: %s", SKILL_DIR)
     missing = [p for p in REQUIRED if not (SKILL_DIR / p).exists()]
     if missing:
         print("Missing required files:")
@@ -54,8 +59,10 @@ def main() -> int:
             return 2
 
     for py in (SKILL_DIR / "scripts").glob("*.py"):
+        LOGGER.debug("Compiling Python script: %s", py)
         py_compile.compile(str(py), doraise=True)
 
+    LOGGER.info("Skill package validation complete")
     print("Skill package validation passed.")
     print("Minimal deterministic Terraform Skill structure found.")
     return 0
